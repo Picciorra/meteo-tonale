@@ -76,6 +76,7 @@
     .s2 { background: var(--ok-bg); border: 1px solid var(--ok); }
     .s1 { background: var(--mid-bg); border: 1px solid var(--mid); }
     .s0 { background: var(--ko-bg); border: 1px solid var(--ko); }
+    .sx { background: var(--bg); border: 1px dashed var(--line); }
     .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 12px; color: var(--muted); }
     .legend span { display: inline-flex; align-items: center; gap: 6px; }
     .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
@@ -86,6 +87,7 @@
     .group h3 .count { color: var(--muted); font-weight: 500; }
     .dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
     .bene .dot { background: var(--ok); } .mista .dot { background: var(--mid); } .male .dot { background: var(--ko); }
+    .chiusa .dot { background: var(--muted); } .chiusa li { opacity: .6; }
     .piste { list-style: none; margin: 0; padding: 0; }
     .piste li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
     .piste li:last-child { border-bottom: 0; }
@@ -123,6 +125,7 @@
     <section class="card group bene"><h3><span class="dot"></span>Si scia bene <span class="count" id="nBene"></span></h3><ul class="piste" id="lBene"></ul></section>
     <section class="card group mista"><h3><span class="dot"></span>Mista <span class="count" id="nMista"></span></h3><ul class="piste" id="lMista"></ul></section>
     <section class="card group male"><h3><span class="dot"></span>Si scia male <span class="count" id="nMale"></span></h3><ul class="piste" id="lMale"></ul></section>
+    <section class="card group chiusa" id="boxChiuse" hidden><h3><span class="dot"></span>Chiuse <span class="count" id="nChiuse"></span></h3><ul class="piste" id="lChiuse"></ul></section>
 
     <h2>Prossimi 7 giorni</h2>
     <section class="card">
@@ -140,7 +143,7 @@
       </table>
     </section>
 
-    <p class="hint">Come funziona: per ogni pista e ogni ora confronta lo zero termico con le quote. Se di notte lo zero scende sotto la pista, la neve rigela e a metà mattina diventa "primaverile" (bella). Il vento forte in quota (oltre 60 km/h a 3000 m) può chiudere gli impianti alti. Esposizione e bosco vengono usati solo per le piste dove sono compilati. Non indica se le piste sono aperte.</p>
+    <p class="hint">Come funziona: per ogni pista e ogni ora confronta lo zero termico con le quote. Se di notte lo zero scende sotto la pista, la neve rigela e a metà mattina diventa "primaverile" (bella). Il vento forte in quota (oltre 60 km/h a 3000 m) può chiudere gli impianti alti. Esposizione e bosco vengono usati solo per le piste dove sono compilati. Lo stato aperta/chiusa arriva ogni mattina dal file stato.json ed è quello del giorno in cui è stato letto.</p>
 
     <footer>Dati: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Quote piste: <a href="https://www.pontedilegnotonale.com/media/rx0b0ftu/cartina_piste_pontetonale_ita_v2.pdf" target="_blank" rel="noopener">cartina ufficiale Pontedilegno-Tonale</a></footer>
   </main>
@@ -257,12 +260,39 @@
       return { s: 0, perche: rigelata ? "molle nel pomeriggio" : "molle, niente rigelo notturno" };
     }
 
+    // ============ D2. STATO IMPIANTI (da stato.json, scritto ogni mattina da GitHub Actions) ============
+    let STATO = null; // { aggiornato: Date } se disponibile e recente
+    const normalizza = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+    function aperta(item) {
+      const v = item.aperta ?? item.open ?? item.isOpen ?? item.stato ?? item.status ?? item.state;
+      if (v === true || v === 1) return true;
+      if (v === false || v === 0) return false;
+      const t = normalizza(v);
+      if (/^(aperta|aperto|open|opened|o|si|yes|true|1)$/.test(t) || t.startsWith("apert")) return true;
+      if (/^(chiusa|chiuso|closed|close|c|no|false|0)$/.test(t) || t.startsWith("chius")) return false;
+      return null;
+    }
+    async function caricaStato() {
+      try {
+        const risposta = await fetch("stato.json?t=" + Date.now());
+        if (!risposta.ok) return;
+        const s = await risposta.json();
+        const quando = new Date(s.aggiornato);
+        if (!Array.isArray(s.piste) || Date.now() - quando > 36 * 3600 * 1000) return; // troppo vecchio
+        const mappa = new Map(s.piste.map(x => [normalizza(x.nome ?? x.name ?? x.pista ?? x.title), aperta(x)]));
+        PISTE.forEach(p => { p.aperta = mappa.has(normalizza(p.nome)) ? mappa.get(normalizza(p.nome)) : null; });
+        STATO = { aggiornato: quando };
+      } catch { /* niente stato: il sito funziona lo stesso */ }
+    }
+
     // ============ E. CALCOLO E DISEGNO PER UN GIORNO ============
     function mostraGiorno(dati, g, etichetta) {
       const ctx = contestoGiorno(dati, g);
+      const chiuse = STATO ? PISTE.filter(p => p.aperta === false) : [];
+      const valutate = STATO ? PISTE.filter(p => p.aperta !== false) : PISTE;
 
-      // punteggi pista x ora
-      const risultati = PISTE.map(p => {
+      // punteggi pista x ora (solo piste non chiuse)
+      const risultati = valutate.map(p => {
         const ore = ORE.map(h => ({ h, ...punteggio(p, dati, g, h, ctx) }));
         const buone = ore.filter(o => o.s === 2).map(o => o.h);
         const max = Math.max(...ore.map(o => o.s));
@@ -274,9 +304,10 @@
       const medie = {};
       ZONE.forEach(z => {
         const rz = risultati.filter(x => x.p.zona === z);
-        medie[z] = ORE.map((h, i) => rz.reduce((a, x) => a + x.ore[i].s, 0) / rz.length);
+        // zona senza piste aperte: -1 (grigio)
+        medie[z] = ORE.map((h, i) => rz.length ? rz.reduce((a, x) => a + x.ore[i].s, 0) / rz.length : -1);
       });
-      const classe = (m) => m >= 1.5 ? "s2" : m >= 0.75 ? "s1" : "s0";
+      const classe = (m) => m < 0 ? "sx" : m >= 1.5 ? "s2" : m >= 0.75 ? "s1" : "s0";
       document.getElementById("grid").innerHTML =
         `<div></div>` + ORE.map(h => `<div class="h">${h}</div>`).join("") +
         ZONE.map(z => `<div class="z">${z}</div>` + medie[z].map(m => `<div class="cell ${classe(m)}" title="${z}"></div>`).join("")).join("");
@@ -287,7 +318,9 @@
         .filter(x => x.verdi.length)
         .sort((a, b) => b.tot - a.tot);
       let testo;
-      if (classifica.length) {
+      if (!risultati.length) {
+        testo = `${etichetta}: comprensorio chiuso, nessuna pista aperta.`;
+      } else if (classifica.length) {
         const parti = classifica.slice(0, 2).map(x => `${x.z} (${x.verdi.length === ORE.length ? "tutto il giorno" : x.verdi[0] + "-" + (x.verdi[x.verdi.length - 1] + 1)})`);
         testo = `${etichetta}: meglio ${parti.join(", poi ")}.`;
       } else {
@@ -309,7 +342,21 @@
         ? `<span class="chip ${ctx.neveFresca >= 10 ? "good" : ""}">Neve fresca ${r(ctx.neveFresca)} cm in 48 h</span>`
         : `<span class="chip">Niente neve fresca</span>`);
       if (ctx.ventoMax != null) chips.push(`<span class="chip ${ctx.ventoMax > VENTO_MAX ? "warn" : ""}">Vento a 3000 m fino a ${r(ctx.ventoMax)} km/h${ctx.ventoMax > VENTO_MAX ? ": impianti alti a rischio" : ""}</span>`);
+      if (STATO) {
+        const ora = STATO.aggiornato.toLocaleString("it-IT", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+        const aperte = PISTE.filter(p => p.aperta === true).length;
+        const ignote = PISTE.filter(p => p.aperta == null).length;
+        chips.push(`<span class="chip">Piste aperte: ${aperte}/${PISTE.length}${ignote ? `, ${ignote} senza dati` : ""} (stato di ${ora})</span>`);
+      } else {
+        chips.push(`<span class="chip">Stato impianti non disponibile</span>`);
+      }
       document.getElementById("chips").innerHTML = chips.join("");
+
+      // piste chiuse
+      document.getElementById("boxChiuse").hidden = !chiuse.length;
+      document.getElementById("nChiuse").textContent = chiuse.length;
+      document.getElementById("lChiuse").innerHTML = chiuse
+        .map(p => `<li><span>${p.nome} <span class="zona">· ${p.zona}</span></span><span class="q">${p.monte} → ${p.valle} m</span></li>`).join("");
 
       // liste piste
       const gruppi = { 2: [], 1: [], 0: [] };
@@ -339,7 +386,7 @@
 
     async function carica() {
       try {
-        const dati = await scarica(URL_API);
+        const [dati] = await Promise.all([scarica(URL_API), caricaStato()]);
         const c = dati.current;
         const oggi = c.time.slice(0, 10);
 
