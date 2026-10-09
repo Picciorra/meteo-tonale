@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meteo Tonale</title>
+  <style>
+    /* 1. COLORI: chiaro e scuro */
+    :root {
+      --bg: #f4f6f8; --card: #ffffff; --text: #16202a; --muted: #5d6b78;
+      --line: #e1e6eb; --accent: #2f6fde; --snow: #4aa3df;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1419; --card: #182029; --text: #e8edf2; --muted: #93a1ae;
+        --line: #26313c; --accent: #6b9cff; --snow: #7cc4f2;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.4;
+    }
+    main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
+    h1 { font-size: 28px; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+    .card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 14px; padding: 20px; margin-bottom: 16px;
+    }
+    .now { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
+    .temp { font-size: 56px; font-weight: 700; letter-spacing: -1px; }
+    .desc { font-size: 18px; font-weight: 600; }
+    .meta { color: var(--muted); font-size: 14px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+    .stat .label { color: var(--muted); font-size: 13px; }
+    .stat .value { font-size: 20px; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 10px 6px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr:last-child td { border-bottom: 0; }
+    .snow { color: var(--snow); font-weight: 600; }
+    .error { color: #d9534f; }
+    footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
+    footer a { color: var(--accent); }
+    @media (max-width: 520px) { .hide-sm { display: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Passo del Tonale</h1>
+    <p class="sub">1883 m · previsioni aggiornate ad ogni apertura della pagina</p>
+
+    <section class="card" id="now"><p class="meta">Caricamento dati...</p></section>
+    <section class="card"><div class="stats" id="stats"></div></section>
+    <section class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Giorno</th><th>Cielo</th>
+            <th class="num">Min / Max</th>
+            <th class="num">Neve</th>
+            <th class="num hide-sm">Pioggia %</th>
+            <th class="num hide-sm">Vento</th>
+          </tr>
+        </thead>
+        <tbody id="days"></tbody>
+      </table>
+    </section>
+
+    <footer>Dati: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></footer>
+  </main>
+
+  <script>
+    // 2. LA CHIAMATA API: coordinate del Passo del Tonale + i dati che vogliamo
+    const URL_API = "https://api.open-meteo.com/v1/forecast"
+      + "?latitude=46.2586&longitude=10.5803&elevation=1883"
+      + "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m"
+      + "&hourly=snow_depth,freezing_level_height"
+      + "&daily=weather_code,temperature_2m_max,temperature_2m_min,snowfall_sum,precipitation_probability_max,wind_speed_10m_max"
+      + "&timezone=Europe%2FRome&forecast_days=7";
+
+    // 3. TRADUZIONE dei codici meteo (standard WMO) in parole
+    function descrizione(codice) {
+      if (codice === 0) return "Sereno";
+      if (codice <= 2) return "Poco nuvoloso";
+      if (codice === 3) return "Coperto";
+      if (codice <= 48) return "Nebbia";
+      if (codice <= 57) return "Pioviggine";
+      if (codice <= 67) return "Pioggia";
+      if (codice <= 77) return "Neve";
+      if (codice <= 82) return "Rovesci";
+      if (codice <= 86) return "Rovesci di neve";
+      return "Temporale";
+    }
+
+    const r = (n) => Math.round(n);
+    const giorno = (data) => new Date(data + "T12:00").toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" });
+
+    // 4. SCARICA i dati e DISEGNA la pagina
+    async function carica() {
+      try {
+        const risposta = await fetch(URL_API);
+        if (!risposta.ok) throw new Error("HTTP " + risposta.status);
+        const dati = await risposta.json();
+
+        const c = dati.current;
+        // valore orario più vicino ad adesso (neve al suolo e zero termico)
+        const ora = dati.hourly.time.findIndex(t => t >= c.time.slice(0, 13));
+        const i = ora < 0 ? 0 : ora;
+        const neveSuolo = dati.hourly.snow_depth[i];
+        const zeroTermico = dati.hourly.freezing_level_height[i];
+
+        document.getElementById("now").innerHTML = `
+          <div class="now">
+            <div class="temp">${r(c.temperature_2m)}°</div>
+            <div>
+              <div class="desc">${descrizione(c.weather_code)}</div>
+              <div class="meta">Percepita ${r(c.apparent_temperature)}° · aggiornato alle ${c.time.slice(11)}</div>
+            </div>
+          </div>`;
+
+        document.getElementById("stats").innerHTML = `
+          <div class="stat"><div class="label">Neve al suolo</div><div class="value">${neveSuolo == null ? "n.d." : r(neveSuolo * 100) + " cm"}</div></div>
+          <div class="stat"><div class="label">Zero termico</div><div class="value">${zeroTermico == null ? "n.d." : r(zeroTermico) + " m"}</div></div>
+          <div class="stat"><div class="label">Vento</div><div class="value">${r(c.wind_speed_10m)} km/h</div></div>
+          <div class="stat"><div class="label">Neve prossimi 7 gg</div><div class="value">${r(dati.daily.snowfall_sum.reduce((a, b) => a + b, 0))} cm</div></div>`;
+
+        const d = dati.daily;
+        document.getElementById("days").innerHTML = d.time.map((t, k) => `
+          <tr>
+            <td>${giorno(t)}</td>
+            <td>${descrizione(d.weather_code[k])}</td>
+            <td class="num">${r(d.temperature_2m_min[k])}° / ${r(d.temperature_2m_max[k])}°</td>
+            <td class="num ${d.snowfall_sum[k] > 0 ? "snow" : ""}">${d.snowfall_sum[k] > 0 ? d.snowfall_sum[k].toFixed(1) + " cm" : "-"}</td>
+            <td class="num hide-sm">${d.precipitation_probability_max[k] ?? "-"}%</td>
+            <td class="num hide-sm">${r(d.wind_speed_10m_max[k])} km/h</td>
+          </tr>`).join("");
+      } catch (e) {
+        document.getElementById("now").innerHTML = `<p class="error">Non riesco a caricare i dati (${e.message}). Riprova tra poco.</p>`;
+      }
+    }
+
+    carica();
+  </script>
+</body>
+</html>
