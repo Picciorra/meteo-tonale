@@ -1,13 +1,17 @@
 # Lanciala a mano: apre una pagina con Chrome sui server di GitHub
-# e scrive nel log quali dati carica la pagina (riassunto di API Anything).
+# e scrive nel log dove si trovano i dati delle piste (riassunto di API Anything).
 name: Esplora sito
 
 on:
   workflow_dispatch:
     inputs:
       url:
-        description: "https://www.pontedilegnotonale.com/en/pontedilegno-tonale-skiing/pontedilegno-tonale-slopes/"
+        description: "Indirizzo della pagina con lo stato di piste e impianti"
         required: true
+      esempio:
+        description: "Nome di una pista che compare nella pagina"
+        required: true
+        default: "Paradiso"
 
 permissions:
   contents: read
@@ -32,8 +36,28 @@ jobs:
       - name: Esplora la pagina
         env:
           PAGINA: ${{ inputs.url }}
+          ESEMPIO: ${{ inputs.esempio }}
           API_ANYTHING_HOME: ${{ runner.temp }}/api-anything
         run: |
+          api-anything capture "$PAGINA" --example "pista=$ESEMPIO" > capture.json || true
+          ID=$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync("capture.json","utf8")).capture||"")}catch{console.log("")}')
           echo "===== INIZIO RISULTATO (copia da qui) ====="
-          api-anything capture "$PAGINA" --outline || true
+          echo "--- 1. RIASSUNTO DELLA PAGINA ---"
+          api-anything inspect "$ID" 1 --outline --example "pista=$ESEMPIO" || true
+          echo
+          echo "--- 2. HTML INTORNO AI NOMI DELLE PISTE ---"
+          api-anything inspect "$ID" 1 > pagina.json || true
+          node -e '
+            const fs = require("fs");
+            let raw = fs.readFileSync("pagina.json", "utf8"), html = raw;
+            const lunga = (x) => typeof x === "string" ? x : x && typeof x === "object" ? Object.values(x).map(lunga).sort((a, b) => b.length - a.length)[0] || "" : "";
+            try { html = lunga(JSON.parse(raw)); } catch {}
+            html = html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<svg[\s\S]*?<\/svg>/gi, "<svg/>").replace(/\s+/g, " ");
+            console.log("Lunghezza HTML pulito:", html.length);
+            for (const nome of [process.env.ESEMPIO, "Contrabbandieri", "Valbiolo", "Corno d"]) {
+              const i = html.indexOf(nome);
+              console.log("\n### " + nome + (i < 0 ? ": non trovato" : " (posizione " + i + ")"));
+              if (i >= 0) console.log(html.slice(Math.max(0, i - 900), i + 600));
+            }
+          '
           echo "===== FINE RISULTATO ====="
