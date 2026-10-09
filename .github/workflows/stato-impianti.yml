@@ -1,0 +1,68 @@
+# Ogni mattina legge lo stato delle piste con API Anything e lo salva in stato.json.
+# Gira sui server di GitHub: il tuo PC può restare spento.
+name: Stato impianti
+
+on:
+  schedule:
+    - cron: "30 6 * * *"   # 7:30 ora italiana d'inverno (8:30 d'estate)
+  workflow_dispatch:        # pulsante "Run workflow" per lanciarlo a mano
+
+permissions:
+  contents: write           # serve per salvare stato.json nel repository
+
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Controlla che l'operazione sia stata insegnata
+        id: spec
+        run: |
+          if [ -f api-anything/pontedilegno.json ]; then echo "ok=1" >> "$GITHUB_OUTPUT"
+          else echo "Manca api-anything/pontedilegno.json: insegna prima l'operazione."; fi
+
+      - name: Installa API Anything (versione fissata, per sicurezza)
+        if: steps.spec.outputs.ok == '1'
+        run: |
+          dir="$(mktemp -d)"
+          git clone -q https://github.com/goodnight000/api-anything.git "$dir"
+          cd "$dir"
+          git checkout -q 7e301989e3095fc38b992bdb8bd9bcee90600a8b
+          npm ci --no-audit --no-fund
+          npm install -g "$(npm pack --silent)"
+
+      - name: Leggi lo stato delle piste
+        if: steps.spec.outputs.ok == '1'
+        env:
+          API_ANYTHING_HOME: ${{ runner.temp }}/api-anything
+        run: |
+          mkdir -p "$API_ANYTHING_HOME/sites"
+          cp api-anything/pontedilegno.json "$API_ANYTHING_HOME/sites/"
+          api-anything call pontedilegno statoPiste > risposta.json || true
+          node -e '
+            const fs = require("fs");
+            let r = {};
+            try { r = JSON.parse(fs.readFileSync("risposta.json", "utf8")); } catch {}
+            if (!r.ok || !Array.isArray(r.data) || !r.data.length) {
+              console.log("Lettura non riuscita, tengo lo stato precedente:", JSON.stringify(r).slice(0, 300));
+              process.exit(0);
+            }
+            const stato = { aggiornato: new Date().toISOString(), piste: r.data };
+            fs.writeFileSync("stato.json", JSON.stringify(stato, null, 2) + "\n");
+            console.log("Piste lette:", r.data.length, "tier", r.tier);
+          '
+
+      - name: Salva stato.json nel repository
+        if: steps.spec.outputs.ok == '1'
+        run: |
+          git config user.name "stato-impianti-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add stato.json 2>/dev/null || true
+          git diff --cached --quiet && echo "Nessuna novità" && exit 0
+          git commit -m "Stato impianti $(date -u +%Y-%m-%d)"
+          git push
