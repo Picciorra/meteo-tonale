@@ -9,11 +9,14 @@
     :root {
       --bg: #f4f6f8; --card: #ffffff; --text: #16202a; --muted: #5d6b78;
       --line: #e1e6eb; --accent: #2f6fde; --snow: #4aa3df;
+      --ok: #2fa36b; --mid: #e0a526; --ko: #d9534f;
+      --ok-bg: rgba(47,163,107,.16); --mid-bg: rgba(224,165,38,.18); --ko-bg: rgba(217,83,79,.14);
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #0f1419; --card: #182029; --text: #e8edf2; --muted: #93a1ae;
         --line: #26313c; --accent: #6b9cff; --snow: #7cc4f2;
+        --ok-bg: rgba(47,163,107,.28); --mid-bg: rgba(224,165,38,.28); --ko-bg: rgba(217,83,79,.24);
       }
     }
     * { box-sizing: border-box; }
@@ -24,7 +27,9 @@
     }
     main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
     h1 { font-size: 28px; margin: 0 0 4px; }
+    h2 { font-size: 20px; margin: 32px 0 4px; }
     .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+    .hint { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
     .card {
       background: var(--card); border: 1px solid var(--line);
       border-radius: 14px; padding: 20px; margin-bottom: 16px;
@@ -42,14 +47,12 @@
     td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     tr:last-child td { border-bottom: 0; }
     .snow { color: var(--snow); font-weight: 600; }
-    .error { color: #d9534f; }
+    .error { color: var(--ko); }
     footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
     footer a { color: var(--accent); }
     @media (max-width: 520px) { .hide-sm { display: none; } }
 
-    /* PISTE */
-    h2 { font-size: 20px; margin: 32px 0 4px; }
-    .hint { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+    /* 2. GIORNI */
     .days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; }
     .days button {
       flex: 0 0 auto; border: 1px solid var(--line); background: var(--card); color: var(--text);
@@ -57,15 +60,38 @@
     }
     .days button small { display: block; color: var(--muted); font-size: 12px; }
     .days button.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+    /* 3. CONSIGLIO */
+    .advice { font-size: 18px; font-weight: 600; margin: 0 0 12px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { font-size: 13px; padding: 4px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); }
+    .chip.warn { border-color: var(--ko); color: var(--ko); }
+    .chip.good { border-color: var(--ok); color: var(--ok); }
+
+    /* 4. GRIGLIA ZONE x ORE */
+    .grid { display: grid; grid-template-columns: 110px repeat(8, 1fr); gap: 4px; font-size: 12px; align-items: center; }
+    .grid .h { color: var(--muted); text-align: center; }
+    .grid .z { font-weight: 600; font-size: 13px; }
+    .cell { height: 28px; border-radius: 6px; }
+    .s2 { background: var(--ok-bg); border: 1px solid var(--ok); }
+    .s1 { background: var(--mid-bg); border: 1px solid var(--mid); }
+    .s0 { background: var(--ko-bg); border: 1px solid var(--ko); }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+    @media (max-width: 520px) { .grid { grid-template-columns: 84px repeat(8, 1fr); } .grid .z { font-size: 12px; } }
+
+    /* 5. PISTE */
     .group h3 { display: flex; align-items: center; gap: 8px; font-size: 16px; margin: 0 0 12px; }
     .group h3 .count { color: var(--muted); font-weight: 500; }
     .dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
-    .bene .dot { background: #2fa36b; } .mista .dot { background: #e0a526; } .male .dot { background: #d9534f; }
+    .bene .dot { background: var(--ok); } .mista .dot { background: var(--mid); } .male .dot { background: var(--ko); }
     .piste { list-style: none; margin: 0; padding: 0; }
     .piste li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
     .piste li:last-child { border-bottom: 0; }
-    .piste .q { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .piste .zona { color: var(--muted); font-size: 12px; }
+    .piste .q { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+    .piste .zona, .piste .why { color: var(--muted); font-size: 12px; }
+    .piste .why { display: block; }
     .empty { color: var(--muted); font-size: 14px; margin: 0; }
   </style>
 </head>
@@ -76,6 +102,29 @@
 
     <section class="card" id="now"><p class="meta">Caricamento dati...</p></section>
     <section class="card"><div class="stats" id="stats"></div></section>
+
+    <h2>Dove e quando sciare</h2>
+    <div class="days" id="dayPicker"></div>
+
+    <section class="card">
+      <p class="advice" id="advice">...</p>
+      <div class="chips" id="chips"></div>
+    </section>
+
+    <section class="card">
+      <div class="grid" id="grid"></div>
+      <div class="legend">
+        <span><i class="s2"></i>Neve buona</span>
+        <span><i class="s1"></i>Mista</span>
+        <span><i class="s0"></i>Molle o vento</span>
+      </div>
+    </section>
+
+    <section class="card group bene"><h3><span class="dot"></span>Si scia bene <span class="count" id="nBene"></span></h3><ul class="piste" id="lBene"></ul></section>
+    <section class="card group mista"><h3><span class="dot"></span>Mista <span class="count" id="nMista"></span></h3><ul class="piste" id="lMista"></ul></section>
+    <section class="card group male"><h3><span class="dot"></span>Si scia male <span class="count" id="nMale"></span></h3><ul class="piste" id="lMale"></ul></section>
+
+    <h2>Prossimi 7 giorni</h2>
     <section class="card">
       <table>
         <thead>
@@ -91,27 +140,60 @@
       </table>
     </section>
 
-    <h2>Dove si scia bene</h2>
-    <p class="hint" id="pisteHint">Le piste confrontate con lo zero termico (media tra le 9 e le 16).</p>
-    <div class="days" id="dayPicker"></div>
-    <section class="card group bene"><h3><span class="dot"></span>Si scia bene <span class="count" id="nBene"></span></h3><p class="hint">Zero termico sotto la quota a valle: tutta la pista sotto zero.</p><ul class="piste" id="lBene"></ul></section>
-    <section class="card group mista"><h3><span class="dot"></span>Mista <span class="count" id="nMista"></span></h3><p class="hint">Neve buona in alto, molle verso valle.</p><ul class="piste" id="lMista"></ul></section>
-    <section class="card group male"><h3><span class="dot"></span>Si scia male <span class="count" id="nMale"></span></h3><p class="hint">Zero termico sopra la quota a monte: tutta la pista sopra zero.</p><ul class="piste" id="lMale"></ul></section>
-    <p class="hint">Calcolo basato solo sulla quota. Non considera esposizione, bosco e inversione termica, che a Temù e Ponte di Legno spesso migliorano la neve. Non indica se le piste sono aperte.</p>
+    <p class="hint">Come funziona: per ogni pista e ogni ora confronta lo zero termico con le quote. Se di notte lo zero scende sotto la pista, la neve rigela e a metà mattina diventa "primaverile" (bella). Il vento forte in quota (oltre 60 km/h a 3000 m) può chiudere gli impianti alti. Esposizione e bosco vengono usati solo per le piste dove sono compilati. Non indica se le piste sono aperte.</p>
 
     <footer>Dati: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Quote piste: <a href="https://www.pontedilegnotonale.com/media/rx0b0ftu/cartina_piste_pontetonale_ita_v2.pdf" target="_blank" rel="noopener">cartina ufficiale Pontedilegno-Tonale</a></footer>
   </main>
 
   <script>
-    // 2. LA CHIAMATA API: coordinate del Passo del Tonale + i dati che vogliamo
+    // ============ A. LA CHIAMATA API ============
+    // past_days=2 serve per sapere quanta neve è caduta nelle 48 ore prima
+    // wind_speed_700hPa = vento a circa 3000 m (quota del Presena)
     const URL_API = "https://api.open-meteo.com/v1/forecast"
       + "?latitude=46.2586&longitude=10.5803&elevation=1883"
       + "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m"
-      + "&hourly=snow_depth,freezing_level_height"
+      + "&hourly=snow_depth,freezing_level_height,snowfall,wind_speed_700hPa"
       + "&daily=weather_code,temperature_2m_max,temperature_2m_min,snowfall_sum,precipitation_probability_max,wind_speed_10m_max"
-      + "&timezone=Europe%2FRome&forecast_days=7";
+      + "&timezone=Europe%2FRome&forecast_days=7&past_days=2";
 
-    // 3. TRADUZIONE dei codici meteo (standard WMO) in parole
+    // ============ B. LE PISTE ============
+    // [nome, zona, quota monte, quota valle, esposizione, bosco]
+    // esposizione: "N", "S", "E", "O" oppure null se non compilata
+    // bosco: true (riparata dal vento), false (aperta) oppure null se non compilata
+    const PISTE = [
+      ["Temù", "Temù", 1503, 1121, null, null], ["La Croce", "Temù", 1906, 1503, null, null],
+      ["Roccolo Ventura I", "Temù", 1906, 1733, null, null], ["Roccolo Ventura II", "Temù", 1733, 1503, null, null],
+      ["Roccolo Sartori", "Temù", 1733, 1632, null, null], ["Santa Giulia", "Temù", 1906, 1632, null, null],
+      ["Doss delle Pertiche", "Temù", 1876, 1632, null, null],
+      ["Casola Skiweg", "Ponte di Legno", 1714, 1650, null, null], ["Casola I", "Ponte di Legno", 1868, 1500, null, null],
+      ["Casola II", "Ponte di Legno", 1792, 1500, null, null], ["Valbione I", "Ponte di Legno", 1512, 1256, null, null],
+      ["Valbione II", "Ponte di Legno", 1512, 1350, null, null], ["Variante Corno d'Aola", "Ponte di Legno", 1727, 1500, null, null],
+      ["Corno d'Aola", "Ponte di Legno", 1920, 1256, null, null], ["Angelo", "Ponte di Legno", 2120, 1920, null, null],
+      ["Campo scuola Cida", "Ponte di Legno", 1280, 1256, null, null], ["Pegrà", "Ponte di Legno", 1640, 1309, null, null],
+      ["Tonalina", "Tonale", 1916, 1640, null, null], ["Alpino", "Tonale", 2525, 1788, null, null],
+      ["Giuliana", "Tonale", 2089, 1788, null, null], ["Bleis", "Tonale", 2525, 2088, null, null],
+      ["Tre Larici", "Tonale", 1920, 1880, null, null], ["Serodine I", "Tonale", 2212, 1880, null, null],
+      ["Serodine II", "Tonale", 2212, 1880, null, null], ["Serodine Gara", "Tonale", 2212, 1880, null, null],
+      ["Cadì Sit", "Tonale", 2035, 1880, null, null], ["Scoiattolo", "Tonale", 1924, 1880, null, null],
+      ["Presanella", "Tonale", 2010, 1885, null, null], ["Presanella I", "Tonale", 2010, 1885, null, null],
+      ["Vittoria", "Tonale", 2044, 1885, null, null], ["Vittoria I", "Tonale", 2044, 1885, null, null],
+      ["Cinque Dossi", "Tonale", 2179, 1885, null, null], ["Alpe Alta", "Tonale", 2179, 1889, null, null],
+      ["Cadì Carosello", "Tonale", 2179, 1939, null, null], ["Cadì Carosello I", "Tonale", 2179, 1939, null, null],
+      ["Valena", "Tonale", 2013, 1889, null, null], ["Valena I", "Tonale", 2013, 1889, null, null],
+      ["Valbiolo", "Tonale", 2242, 1909, null, null], ["San Bartolomeo", "Tonale", 2030, 1887, null, null],
+      ["Tonale Occidentale", "Tonale", 2500, 2265, null, null], ["Contrabbandieri", "Tonale", 2577, 2212, null, null],
+      ["Paradiso", "Tonale", 2587, 1850, null, null], ["Variante Paradiso", "Tonale", 1988, 1733, null, null],
+      ["Presena Paradiso", "Presena", 2724, 2585, null, null], ["Variante Presena Paradiso", "Presena", 2724, 2585, null, null],
+      ["Ghiacciaio Presena", "Presena", 3000, 2724, null, null]
+    ].map(([nome, zona, monte, valle, esp, bosco]) => ({ nome, zona, monte, valle, esp, bosco }));
+
+    const ZONE = ["Presena", "Tonale", "Ponte di Legno", "Temù"];
+    const ORE = [9, 10, 11, 12, 13, 14, 15, 16];
+    const VENTO_MAX = 60; // km/h a 3000 m oltre cui gli impianti alti rischiano la chiusura
+
+    // ============ C. UTILITÀ ============
+    const r = (n) => Math.round(n);
+    const giorno = (data) => new Date(data + "T12:00").toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" });
     function descrizione(codice) {
       if (codice === 0) return "Sereno";
       if (codice <= 2) return "Poco nuvoloso";
@@ -124,81 +206,124 @@
       if (codice <= 86) return "Rovesci di neve";
       return "Temporale";
     }
-
-    const r = (n) => Math.round(n);
-    const giorno = (data) => new Date(data + "T12:00").toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" });
-
-    // 5. LE PISTE: nome, zona, quota a monte e a valle (m), dalla cartina ufficiale
-    const PISTE = [
-      ["Temù", "Temù", 1503, 1121], ["La Croce", "Temù", 1906, 1503],
-      ["Roccolo Ventura I", "Temù", 1906, 1733], ["Roccolo Ventura II", "Temù", 1733, 1503],
-      ["Roccolo Sartori", "Temù", 1733, 1632], ["Santa Giulia", "Temù", 1906, 1632],
-      ["Doss delle Pertiche", "Temù", 1876, 1632],
-      ["Casola Skiweg", "Ponte di Legno", 1714, 1650], ["Casola I", "Ponte di Legno", 1868, 1500],
-      ["Casola II", "Ponte di Legno", 1792, 1500], ["Valbione I", "Ponte di Legno", 1512, 1256],
-      ["Valbione II", "Ponte di Legno", 1512, 1350], ["Variante Corno d'Aola", "Ponte di Legno", 1727, 1500],
-      ["Corno d'Aola", "Ponte di Legno", 1920, 1256], ["Angelo", "Ponte di Legno", 2120, 1920],
-      ["Campo scuola Cida", "Ponte di Legno", 1280, 1256], ["Pegrà", "Ponte di Legno", 1640, 1309],
-      ["Tonalina", "Tonale", 1916, 1640], ["Alpino", "Tonale", 2525, 1788],
-      ["Giuliana", "Tonale", 2089, 1788], ["Bleis", "Tonale", 2525, 2088],
-      ["Tre Larici", "Tonale", 1920, 1880], ["Serodine I", "Tonale", 2212, 1880],
-      ["Serodine II", "Tonale", 2212, 1880], ["Serodine Gara", "Tonale", 2212, 1880],
-      ["Cadì Sit", "Tonale", 2035, 1880], ["Scoiattolo", "Tonale", 1924, 1880],
-      ["Presanella", "Tonale", 2010, 1885], ["Presanella I", "Tonale", 2010, 1885],
-      ["Vittoria", "Tonale", 2044, 1885], ["Vittoria I", "Tonale", 2044, 1885],
-      ["Cinque Dossi", "Tonale", 2179, 1885], ["Alpe Alta", "Tonale", 2179, 1889],
-      ["Cadì Carosello", "Tonale", 2179, 1939], ["Cadì Carosello I", "Tonale", 2179, 1939],
-      ["Valena", "Tonale", 2013, 1889], ["Valena I", "Tonale", 2013, 1889],
-      ["Valbiolo", "Tonale", 2242, 1909], ["San Bartolomeo", "Tonale", 2030, 1887],
-      ["Tonale Occidentale", "Tonale", 2500, 2265], ["Contrabbandieri", "Tonale", 2577, 2212],
-      ["Paradiso", "Tonale", 2587, 1850], ["Variante Paradiso", "Tonale", 1988, 1733],
-      ["Presena Paradiso", "Presena", 2724, 2585], ["Variante Presena Paradiso", "Presena", 2724, 2585],
-      ["Ghiacciaio Presena", "Presena", 3000, 2724]
-    ];
-
-    // zero termico medio della giornata sciistica (9-16) per ogni giorno
-    function zeroPerGiorno(dati) {
-      return dati.daily.time.map(g => {
-        const valori = dati.hourly.time
-          .map((t, k) => ({ t, v: dati.hourly.freezing_level_height[k] }))
-          .filter(x => x.t.startsWith(g) && +x.t.slice(11, 13) >= 9 && +x.t.slice(11, 13) <= 16 && x.v != null)
-          .map(x => x.v);
-        return valori.length ? valori.reduce((a, b) => a + b, 0) / valori.length : null;
-      });
+    // valore orario per un giorno e un'ora: "2026-10-09", 10
+    function valore(dati, campo, g, ora) {
+      const k = dati.hourly.time.indexOf(`${g}T${String(ora).padStart(2, "0")}:00`);
+      return k < 0 ? null : dati.hourly[campo][k];
+    }
+    // fascia oraria leggibile: [10,11,12] -> "10-13"
+    function fascia(ore) {
+      if (!ore.length) return "";
+      return `${ore[0]}-${ore[ore.length - 1] + 1}`;
     }
 
-    // confronta ogni pista con lo zero termico
-    function mostraPiste(zero, etichetta) {
-      const gruppi = { bene: [], mista: [], male: [] };
-      PISTE.forEach(([nome, zona, monte, valle]) => {
-        const stato = zero <= valle ? "bene" : zero >= monte ? "male" : "mista";
-        gruppi[stato].push({ nome, zona, monte, valle });
+    // ============ D. IL MODELLO DELLA NEVE ============
+    // l'esposizione sposta lo zero termico "percepito" dalla pista:
+    // a nord è come se fosse 200 m più basso (meno sole), a sud 200 m più alto
+    const correzione = (p) => p.esp === "N" ? -200 : p.esp === "S" ? 200 : 0;
+
+    // contesto del giorno: rigelo notturno, neve fresca, vento
+    function contestoGiorno(dati, g) {
+      const notte = [0, 1, 2, 3, 4, 5, 6, 7].map(h => valore(dati, "freezing_level_height", g, h)).filter(v => v != null);
+      const zeroNotte = notte.length ? Math.min(...notte) : null;
+      // neve caduta nelle 48 ore prima delle 9 del giorno scelto
+      const fine = dati.hourly.time.indexOf(`${g}T09:00`);
+      let neveFresca = 0;
+      for (let k = Math.max(0, fine - 48); k < fine; k++) neveFresca += dati.hourly.snowfall[k] || 0;
+      const venti = ORE.map(h => valore(dati, "wind_speed_700hPa", g, h)).filter(v => v != null);
+      const ventoMax = venti.length ? Math.max(...venti) : null;
+      return { zeroNotte, neveFresca, ventoMax };
+    }
+
+    // punteggio di una pista in una certa ora: 2 bene, 1 mista, 0 male
+    function punteggio(p, dati, g, ora, ctx) {
+      const zero = valore(dati, "freezing_level_height", g, ora);
+      if (zero == null) return { s: 0, perche: "dati mancanti" };
+      const vento = valore(dati, "wind_speed_700hPa", g, ora);
+      if (vento != null && vento > VENTO_MAX && p.monte >= 2500 && p.bosco !== true)
+        return { s: 0, perche: "vento forte in quota" };
+
+      const z = zero + correzione(p);
+      const meta = (p.monte + p.valle) / 2;
+      const rigelata = ctx.zeroNotte != null && ctx.zeroNotte + correzione(p) < meta;
+
+      if (z <= p.valle) return { s: 2, perche: ctx.neveFresca >= 10 ? "neve fresca e fredda" : "neve fredda" };
+      if (z < p.monte) {
+        if (rigelata && ora >= 10 && ora <= 12) return { s: 2, perche: "fredda in alto, primaverile in basso" };
+        return { s: 1, perche: "buona in alto, molle in basso" };
+      }
+      if (rigelata && ora >= 10 && ora <= 12) return { s: 2, perche: "primaverile dopo il rigelo" };
+      if (rigelata && ora === 9) return { s: 1, perche: "ancora dura dal rigelo" };
+      return { s: 0, perche: rigelata ? "molle nel pomeriggio" : "molle, niente rigelo notturno" };
+    }
+
+    // ============ E. CALCOLO E DISEGNO PER UN GIORNO ============
+    function mostraGiorno(dati, g, etichetta) {
+      const ctx = contestoGiorno(dati, g);
+
+      // punteggi pista x ora
+      const risultati = PISTE.map(p => {
+        const ore = ORE.map(h => ({ h, ...punteggio(p, dati, g, h, ctx) }));
+        const buone = ore.filter(o => o.s === 2).map(o => o.h);
+        const max = Math.max(...ore.map(o => o.s));
+        const migliore = ore.find(o => o.s === max);
+        return { p, ore, buone, max, perche: migliore.perche };
       });
-      const riga = p => `<li><span>${p.nome} <span class="zona">· ${p.zona}</span></span><span class="q">${p.monte} → ${p.valle} m</span></li>`;
-      for (const [k, id] of [["bene", "Bene"], ["mista", "Mista"], ["male", "Male"]]) {
-        const lista = gruppi[k].sort((a, b) => b.valle - a.valle);
+
+      // griglia zone x ore (media dei punteggi delle piste della zona)
+      const medie = {};
+      ZONE.forEach(z => {
+        const rz = risultati.filter(x => x.p.zona === z);
+        medie[z] = ORE.map((h, i) => rz.reduce((a, x) => a + x.ore[i].s, 0) / rz.length);
+      });
+      const classe = (m) => m >= 1.5 ? "s2" : m >= 0.75 ? "s1" : "s0";
+      document.getElementById("grid").innerHTML =
+        `<div></div>` + ORE.map(h => `<div class="h">${h}</div>`).join("") +
+        ZONE.map(z => `<div class="z">${z}</div>` + medie[z].map(m => `<div class="cell ${classe(m)}" title="${z}"></div>`).join("")).join("");
+
+      // consiglio in cima: zone con almeno un'ora verde, ordinate per punteggio
+      const classifica = ZONE
+        .map(z => ({ z, tot: medie[z].reduce((a, b) => a + b, 0), verdi: ORE.filter((h, i) => medie[z][i] >= 1.5) }))
+        .filter(x => x.verdi.length)
+        .sort((a, b) => b.tot - a.tot);
+      let testo;
+      if (classifica.length) {
+        const parti = classifica.slice(0, 2).map(x => `${x.z} (${x.verdi.length === ORE.length ? "tutto il giorno" : x.verdi[0] + "-" + (x.verdi[x.verdi.length - 1] + 1)})`);
+        testo = `${etichetta}: meglio ${parti.join(", poi ")}.`;
+      } else {
+        const gialle = ZONE.filter(z => medie[z].some(m => m >= 0.75));
+        testo = gialle.length
+          ? `${etichetta}: neve solo discreta, meglio ${gialle[0]} e solo in alto.`
+          : `${etichetta}: neve molle ovunque, zero termico troppo alto.`;
+      }
+      document.getElementById("advice").textContent = testo;
+
+      const chips = [];
+      const zeroGiorno = ORE.map(h => valore(dati, "freezing_level_height", g, h)).filter(v => v != null);
+      if (zeroGiorno.length) {
+        const a = r(Math.min(...zeroGiorno)), b = r(Math.max(...zeroGiorno));
+        chips.push(`<span class="chip">Zero termico di giorno ${a === b ? a : a + "-" + b} m</span>`);
+      }
+      if (ctx.zeroNotte != null) chips.push(`<span class="chip">Di notte ${r(ctx.zeroNotte)} m</span>`);
+      chips.push(ctx.neveFresca >= 1
+        ? `<span class="chip ${ctx.neveFresca >= 10 ? "good" : ""}">Neve fresca ${r(ctx.neveFresca)} cm in 48 h</span>`
+        : `<span class="chip">Niente neve fresca</span>`);
+      if (ctx.ventoMax != null) chips.push(`<span class="chip ${ctx.ventoMax > VENTO_MAX ? "warn" : ""}">Vento a 3000 m fino a ${r(ctx.ventoMax)} km/h${ctx.ventoMax > VENTO_MAX ? ": impianti alti a rischio" : ""}</span>`);
+      document.getElementById("chips").innerHTML = chips.join("");
+
+      // liste piste
+      const gruppi = { 2: [], 1: [], 0: [] };
+      risultati.forEach(x => gruppi[x.max].push(x));
+      const riga = x => `<li><span>${x.p.nome} <span class="zona">· ${x.p.zona}</span><span class="why">${x.perche}</span></span>` +
+        `<span class="q">${x.buone.length ? "ore " + fascia(x.buone) + "<br>" : ""}${x.p.monte} → ${x.p.valle} m</span></li>`;
+      [[2, "Bene"], [1, "Mista"], [0, "Male"]].forEach(([k, id]) => {
+        const lista = gruppi[k].sort((a, b) => b.buone.length - a.buone.length || b.p.valle - a.p.valle);
         document.getElementById("n" + id).textContent = lista.length;
         document.getElementById("l" + id).innerHTML = lista.length ? lista.map(riga).join("") : `<p class="empty">Nessuna pista</p>`;
-      }
-      document.getElementById("pisteHint").textContent =
-        `${etichetta}: zero termico a ${r(zero)} m (media tra le 9 e le 16).`;
+      });
     }
 
-    function preparaPiste(dati) {
-      const zeri = zeroPerGiorno(dati);
-      const box = document.getElementById("dayPicker");
-      box.innerHTML = dati.daily.time.map((g, k) =>
-        zeri[k] == null ? "" : `<button data-k="${k}">${k === 0 ? "Oggi" : giorno(g)}<small>0° a ${r(zeri[k])} m</small></button>`).join("");
-      const scegli = k => {
-        box.querySelectorAll("button").forEach(b => b.classList.toggle("on", +b.dataset.k === k));
-        mostraPiste(zeri[k], k === 0 ? "Oggi" : giorno(dati.daily.time[k]));
-      };
-      box.querySelectorAll("button").forEach(b => b.onclick = () => scegli(+b.dataset.k));
-      const primo = zeri.findIndex(z => z != null);
-      if (primo >= 0) scegli(primo);
-    }
-
-    // scarica con fino a 3 tentativi (a volte l'API risponde con un errore momentaneo)
+    // ============ F. SCARICA (con 3 tentativi) E AVVIA ============
     async function scarica(url, tentativi = 3) {
       for (let n = 1; ; n++) {
         try {
@@ -212,18 +337,16 @@
       }
     }
 
-    // 4. SCARICA i dati e DISEGNA la pagina
     async function carica() {
       try {
         const dati = await scarica(URL_API);
-
         const c = dati.current;
-        // valore orario più vicino ad adesso (neve al suolo e zero termico)
-        const ora = dati.hourly.time.findIndex(t => t >= c.time.slice(0, 13));
-        const i = ora < 0 ? 0 : ora;
+        const oggi = c.time.slice(0, 10);
+
+        // meteo attuale
+        const i = Math.max(0, dati.hourly.time.findIndex(t => t >= c.time.slice(0, 13)));
         const neveSuolo = dati.hourly.snow_depth[i];
         const zeroTermico = dati.hourly.freezing_level_height[i];
-
         document.getElementById("now").innerHTML = `
           <div class="now">
             <div class="temp">${r(c.temperature_2m)}°</div>
@@ -233,16 +356,18 @@
             </div>
           </div>`;
 
+        // giorni da oggi in poi (i 2 giorni passati servono solo per la neve fresca)
+        const d = dati.daily;
+        const idx = d.time.map((t, k) => k).filter(k => d.time[k] >= oggi);
         document.getElementById("stats").innerHTML = `
           <div class="stat"><div class="label">Neve al suolo</div><div class="value">${neveSuolo == null ? "n.d." : r(neveSuolo * 100) + " cm"}</div></div>
           <div class="stat"><div class="label">Zero termico</div><div class="value">${zeroTermico == null ? "n.d." : r(zeroTermico) + " m"}</div></div>
           <div class="stat"><div class="label">Vento</div><div class="value">${r(c.wind_speed_10m)} km/h</div></div>
-          <div class="stat"><div class="label">Neve prossimi 7 gg</div><div class="value">${r(dati.daily.snowfall_sum.reduce((a, b) => a + b, 0))} cm</div></div>`;
+          <div class="stat"><div class="label">Neve prossimi 7 gg</div><div class="value">${r(idx.reduce((a, k) => a + d.snowfall_sum[k], 0))} cm</div></div>`;
 
-        const d = dati.daily;
-        document.getElementById("days").innerHTML = d.time.map((t, k) => `
+        document.getElementById("days").innerHTML = idx.map(k => `
           <tr>
-            <td>${giorno(t)}</td>
+            <td>${giorno(d.time[k])}</td>
             <td>${descrizione(d.weather_code[k])}</td>
             <td class="num">${r(d.temperature_2m_min[k])}° / ${r(d.temperature_2m_max[k])}°</td>
             <td class="num ${d.snowfall_sum[k] > 0 ? "snow" : ""}">${d.snowfall_sum[k] > 0 ? d.snowfall_sum[k].toFixed(1) + " cm" : "-"}</td>
@@ -250,7 +375,21 @@
             <td class="num hide-sm">${r(d.wind_speed_10m_max[k])} km/h</td>
           </tr>`).join("");
 
-        preparaPiste(dati);
+        // selettore giorni
+        const box = document.getElementById("dayPicker");
+        box.innerHTML = idx.map((k, n) => {
+          const zeri = ORE.map(h => valore(dati, "freezing_level_height", d.time[k], h)).filter(v => v != null);
+          const media = zeri.length ? r(zeri.reduce((a, b) => a + b, 0) / zeri.length) + " m" : "n.d.";
+          return `<button data-g="${d.time[k]}" data-n="${n}">${n === 0 ? "Oggi" : n === 1 ? "Domani" : giorno(d.time[k])}<small>0° a ${media}</small></button>`;
+        }).join("");
+        const scegli = (b) => {
+          box.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+          mostraGiorno(dati, b.dataset.g, b.firstChild.textContent);
+        };
+        box.querySelectorAll("button").forEach(b => b.onclick = () => scegli(b));
+        // di sera ha più senso guardare domani
+        const primo = new Date().getHours() >= 16 && box.children[1] ? box.children[1] : box.children[0];
+        if (primo) scegli(primo);
       } catch (e) {
         document.getElementById("now").innerHTML = `<p class="error">Non riesco a caricare i dati (${e.message}). Riprova tra poco.</p>`;
       }
