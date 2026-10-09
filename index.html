@@ -95,12 +95,33 @@
     .piste .zona, .piste .why { color: var(--muted); font-size: 12px; }
     .piste .why { display: block; }
     .empty { color: var(--muted); font-size: 14px; margin: 0; }
+
+    /* 6. RIQUADRI IN CIMA: apertura, ultima e prossima nevicata */
+    .hero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .tile { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+    .tile .label { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+    .tile .big { font-size: 26px; font-weight: 700; letter-spacing: -.5px; line-height: 1.15; }
+    .tile .small { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .tile.accent { border-color: var(--accent); }
+    .tile.snow .big { color: var(--snow); }
+    @media (max-width: 560px) {
+      .hero { gap: 8px; }
+      .tile { padding: 12px; border-radius: 12px; }
+      .tile .label, .tile .small { font-size: 12px; }
+      .tile .big { font-size: 18px; }
+    }
   </style>
 </head>
 <body>
   <main>
     <h1>Passo del Tonale</h1>
     <p class="sub">1883 m · previsioni aggiornate ad ogni apertura della pagina</p>
+
+    <section class="hero">
+      <div class="tile accent" id="tApertura"><div class="label">Apertura impianti</div><div class="big">...</div></div>
+      <div class="tile" id="tUltima"><div class="label">Ultima nevicata</div><div class="big">...</div></div>
+      <div class="tile snow" id="tProssima"><div class="label">Prossima nevicata</div><div class="big">...</div></div>
+    </section>
 
     <section class="card" id="now"><p class="meta">Caricamento dati...</p></section>
     <section class="card"><div class="stats" id="stats"></div></section>
@@ -189,6 +210,10 @@
       ["Presena Paradiso", "Presena", 2724, 2585, null, null], ["Variante Presena Paradiso", "Presena", 2724, 2585, null, null],
       ["Ghiacciaio Presena", "Presena", 3000, 2724, null, null]
     ].map(([nome, zona, monte, valle, esp, bosco]) => ({ nome, zona, monte, valle, esp, bosco }));
+
+    // data prevista di apertura della stagione (fonte VisitTrentino): da aggiornare ogni anno
+    const APERTURA = "2026-11-28";
+    const NEVE_MIN = 1; // cm: sotto questa soglia non conta come nevicata
 
     const ZONE = ["Presena", "Tonale", "Ponte di Legno", "Temù"];
     const ORE = [9, 10, 11, 12, 13, 14, 15, 16];
@@ -374,6 +399,62 @@
       });
     }
 
+    // ============ E2. RIQUADRI IN CIMA ============
+    const tile = (id, big, small) => {
+      const el = document.getElementById(id);
+      el.querySelector(".big").textContent = big;
+      let s = el.querySelector(".small");
+      if (!s) { s = document.createElement("div"); s.className = "small"; el.appendChild(s); }
+      s.textContent = small || "";
+    };
+    const dataLunga = (g) => new Date(g + "T12:00").toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "long" });
+    const giorniTra = (g, oggi) => Math.round((new Date(g + "T12:00") - new Date(oggi + "T12:00")) / 86400000);
+
+    function mostraApertura(oggi) {
+      const aperte = STATO ? PISTE.filter(p => p.aperta === true).length : 0;
+      if (aperte > 0) return tile("tApertura", "Impianti aperti", `${aperte} piste su ${PISTE.length}`);
+      const n = giorniTra(APERTURA, oggi);
+      if (n > 1) return tile("tApertura", `tra ${n} giorni`, `prevista ${dataLunga(APERTURA)}`);
+      if (n === 1) return tile("tApertura", "domani", `prevista ${dataLunga(APERTURA)}`);
+      if (n === 0) return tile("tApertura", "oggi", "apertura prevista oggi");
+      tile("tApertura", "Chiusi", STATO ? "nessuna pista aperta oggi" : "stato impianti non disponibile");
+    }
+
+    // ultima nevicata (fino a 3 mesi fa, poi archivio fino a 13 mesi) e prossima (fino a 16 giorni)
+    async function mostraNevicate(oggi) {
+      const base = "latitude=46.2586&longitude=10.5803&elevation=1883&daily=snowfall_sum&timezone=Europe%2FRome";
+      try {
+        const d = (await scarica(`https://api.open-meteo.com/v1/forecast?${base}&past_days=92&forecast_days=16`)).daily;
+        const giorni = d.time.map((g, k) => ({ g, cm: d.snowfall_sum[k] || 0 }));
+        const prossima = giorni.find(x => x.g > oggi && x.cm >= NEVE_MIN);
+        if (prossima) {
+          const n = giorniTra(prossima.g, oggi);
+          tile("tProssima", n === 1 ? "domani" : `tra ${n} giorni`, `circa ${r(prossima.cm)} cm, ${dataLunga(prossima.g)}`);
+        } else {
+          const oggiNeve = giorni.find(x => x.g === oggi && x.cm >= NEVE_MIN);
+          tile("tProssima", oggiNeve ? "oggi" : "non prevista", oggiNeve ? `circa ${r(oggiNeve.cm)} cm` : "nei prossimi 16 giorni");
+        }
+
+        let ultima = giorni.filter(x => x.g <= oggi && x.cm >= NEVE_MIN).pop();
+        if (!ultima) {
+          // più indietro: archivio storico (ha qualche giorno di ritardo, ma per i mesi passati va benissimo)
+          const fine = new Date(Date.now() - 80 * 86400000).toISOString().slice(0, 10);
+          const inizio = new Date(Date.now() - 400 * 86400000).toISOString().slice(0, 10);
+          const a = (await scarica(`https://archive-api.open-meteo.com/v1/archive?${base}&start_date=${inizio}&end_date=${fine}`)).daily;
+          ultima = a.time.map((g, k) => ({ g, cm: a.snowfall_sum[k] || 0 })).filter(x => x.cm >= NEVE_MIN).pop();
+        }
+        if (ultima) {
+          const n = -giorniTra(ultima.g, oggi);
+          tile("tUltima", n === 0 ? "oggi" : n === 1 ? "ieri" : `${n} giorni fa`, `${r(ultima.cm)} cm, ${dataLunga(ultima.g)}`);
+        } else {
+          tile("tUltima", "oltre un anno fa", "");
+        }
+      } catch (e) {
+        tile("tUltima", "n.d.", "dati non disponibili");
+        tile("tProssima", "n.d.", "dati non disponibili");
+      }
+    }
+
     // ============ F. SCARICA (con 3 tentativi) E AVVIA ============
     async function scarica(url, tentativi = 3) {
       for (let n = 1; ; n++) {
@@ -393,6 +474,8 @@
         const [dati] = await Promise.all([scarica(URL_API), caricaStato()]);
         const c = dati.current;
         const oggi = c.time.slice(0, 10);
+        mostraApertura(oggi);
+        mostraNevicate(oggi);
 
         // meteo attuale
         const i = Math.max(0, dati.hourly.time.findIndex(t => t >= c.time.slice(0, 13)));
