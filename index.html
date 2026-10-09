@@ -94,6 +94,8 @@
     .piste .q { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
     .piste .zona, .piste .why { color: var(--muted); font-size: 12px; }
     .piste .why { display: block; }
+    .piste .scheda { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .piste .scheda b { color: var(--text); font-weight: 600; }
     .empty { color: var(--muted); font-size: 14px; margin: 0; }
 
     /* 6. RIQUADRI IN CIMA: apertura, ultima e prossima nevicata */
@@ -164,7 +166,7 @@
       </table>
     </section>
 
-    <p class="hint">Come funziona: per ogni pista e ogni ora confronta lo zero termico con le quote. Se di notte lo zero scende sotto la pista, la neve rigela e a metà mattina diventa "primaverile" (bella). Il vento forte in quota (oltre 60 km/h a 3000 m) può chiudere gli impianti alti. Esposizione e bosco vengono usati solo per le piste dove sono compilati. Lo stato aperta/chiusa arriva ogni mattina dal file stato.json ed è quello del giorno in cui è stato letto.</p>
+    <p class="hint">Come funziona: per ogni pista e ogni ora confronta lo zero termico con le quote. Se di notte lo zero scende sotto la pista, la neve rigela e a metà mattina diventa "primaverile" (bella). Il vento forte in quota (oltre 60 km/h a 3000 m) può chiudere gli impianti alti. Le piste esposte a nord contano come se lo zero termico fosse fino a 200 m più basso, quelle a sud fino a 200 m più alto; il bosco protegge dal vento. Lo stato aperta/chiusa arriva ogni mattina dal file stato.json ed è quello del giorno in cui è stato letto.</p>
 
     <footer>Dati: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Quote piste: <a href="https://www.pontedilegnotonale.com/media/rx0b0ftu/cartina_piste_pontetonale_ita_v2.pdf" target="_blank" rel="noopener">cartina ufficiale Pontedilegno-Tonale</a></footer>
   </main>
@@ -181,35 +183,55 @@
       + "&timezone=Europe%2FRome&forecast_days=7&past_days=2";
 
     // ============ B. LE PISTE ============
-    // [nome, zona, quota monte, quota valle, esposizione, bosco]
-    // esposizione: "N", "S", "E", "O" oppure null se non compilata
-    // bosco: true (riparata dal vento), false (aperta) oppure null se non compilata
+    // [nome, zona, quota monte, quota valle, lunghezza m, esposizione, bosco]
+    // quote e lunghezze: cartina ufficiale. Esposizione e bosco: calcolati da OpenStreetMap (tabella su Notion)
     const PISTE = [
-      ["Temù", "Temù", 1503, 1121, null, null], ["La Croce", "Temù", 1906, 1503, null, null],
-      ["Roccolo Ventura I", "Temù", 1906, 1733, null, null], ["Roccolo Ventura II", "Temù", 1733, 1503, null, null],
-      ["Roccolo Sartori", "Temù", 1733, 1632, null, null], ["Santa Giulia", "Temù", 1906, 1632, null, null],
-      ["Doss delle Pertiche", "Temù", 1876, 1632, null, null],
-      ["Casola Skiweg", "Ponte di Legno", 1714, 1650, null, null], ["Casola I", "Ponte di Legno", 1868, 1500, null, null],
-      ["Casola II", "Ponte di Legno", 1792, 1500, null, null], ["Valbione I", "Ponte di Legno", 1512, 1256, null, null],
-      ["Valbione II", "Ponte di Legno", 1512, 1350, null, null], ["Variante Corno d'Aola", "Ponte di Legno", 1727, 1500, null, null],
-      ["Corno d'Aola", "Ponte di Legno", 1920, 1256, null, null], ["Angelo", "Ponte di Legno", 2120, 1920, null, null],
-      ["Campo scuola Cida", "Ponte di Legno", 1280, 1256, null, null], ["Pegrà", "Ponte di Legno", 1640, 1309, null, null],
-      ["Tonalina", "Tonale", 1916, 1640, null, null], ["Alpino", "Tonale", 2525, 1788, null, null],
-      ["Giuliana", "Tonale", 2089, 1788, null, null], ["Bleis", "Tonale", 2525, 2088, null, null],
-      ["Tre Larici", "Tonale", 1920, 1880, null, null], ["Serodine I", "Tonale", 2212, 1880, null, null],
-      ["Serodine II", "Tonale", 2212, 1880, null, null], ["Serodine Gara", "Tonale", 2212, 1880, null, null],
-      ["Cadì Sit", "Tonale", 2035, 1880, null, null], ["Scoiattolo", "Tonale", 1924, 1880, null, null],
-      ["Presanella", "Tonale", 2010, 1885, null, null], ["Presanella I", "Tonale", 2010, 1885, null, null],
-      ["Vittoria", "Tonale", 2044, 1885, null, null], ["Vittoria I", "Tonale", 2044, 1885, null, null],
-      ["Cinque Dossi", "Tonale", 2179, 1885, null, null], ["Alpe Alta", "Tonale", 2179, 1889, null, null],
-      ["Cadì Carosello", "Tonale", 2179, 1939, null, null], ["Cadì Carosello I", "Tonale", 2179, 1939, null, null],
-      ["Valena", "Tonale", 2013, 1889, null, null], ["Valena I", "Tonale", 2013, 1889, null, null],
-      ["Valbiolo", "Tonale", 2242, 1909, null, null], ["San Bartolomeo", "Tonale", 2030, 1887, null, null],
-      ["Tonale Occidentale", "Tonale", 2500, 2265, null, null], ["Contrabbandieri", "Tonale", 2577, 2212, null, null],
-      ["Paradiso", "Tonale", 2587, 1850, null, null], ["Variante Paradiso", "Tonale", 1988, 1733, null, null],
-      ["Presena Paradiso", "Presena", 2724, 2585, null, null], ["Variante Presena Paradiso", "Presena", 2724, 2585, null, null],
-      ["Ghiacciaio Presena", "Presena", 3000, 2724, null, null]
-    ].map(([nome, zona, monte, valle, esp, bosco]) => ({ nome, zona, monte, valle, esp, bosco }));
+      ["Temù", "Temù", 1503, 1121, 1235, "NO", true],
+      ["La Croce", "Temù", 1906, 1503, 1700, "NO", true],
+      ["Roccolo Ventura I", "Temù", 1906, 1733, 1050, "NO", true],
+      ["Roccolo Ventura II", "Temù", 1733, 1503, 880, "NO", true],
+      ["Roccolo Sartori", "Temù", 1733, 1632, 410, "NO", true],
+      ["Santa Giulia", "Temù", 1906, 1632, 1230, "NO", true],
+      ["Doss delle Pertiche", "Temù", 1876, 1632, 1150, "NO", true],
+      ["Casola Skiweg", "Ponte di Legno", 1714, 1650, 960, "N", true],
+      ["Casola I", "Ponte di Legno", 1868, 1500, 1700, "N", true],
+      ["Casola II", "Ponte di Legno", 1792, 1500, 1100, "N", true],
+      ["Valbione I", "Ponte di Legno", 1512, 1256, 1100, "N", true],
+      ["Valbione II", "Ponte di Legno", 1512, 1350, 700, "N", true],
+      ["Variante Corno d'Aola", "Ponte di Legno", 1727, 1500, 880, "NO", true],
+      ["Corno d'Aola", "Ponte di Legno", 1920, 1256, 2700, "NO", true],
+      ["Angelo", "Ponte di Legno", 2120, 1920, 1000, "NO", false],
+      ["Campo scuola Cida", "Ponte di Legno", 1280, 1256, 250, "N", true],
+      ["Pegrà", "Ponte di Legno", 1640, 1309, 2500, "SO", true],
+      ["Tonalina", "Tonale", 1916, 1640, 2740, "S", false],
+      ["Alpino", "Tonale", 2525, 1788, 4500, "S", false],
+      ["Giuliana", "Tonale", 2089, 1788, 2500, "S", false],
+      ["Bleis", "Tonale", 2525, 2088, 3000, "S", false],
+      ["Tre Larici", "Tonale", 1920, 1880, 320, "S", false],
+      ["Serodine I", "Tonale", 2212, 1880, 1800, "SE", false],
+      ["Serodine II", "Tonale", 2212, 1880, 1800, "SE", false],
+      ["Serodine Gara", "Tonale", 2212, 1880, 1800, "SE", false],
+      ["Cadì Sit", "Tonale", 2035, 1880, 810, "SE", false],
+      ["Scoiattolo", "Tonale", 1924, 1880, 335, "SE", false],
+      ["Presanella", "Tonale", 2010, 1885, 668, "S", false],
+      ["Presanella I", "Tonale", 2010, 1885, 668, "S", false],
+      ["Vittoria", "Tonale", 2044, 1885, 821, "S", false],
+      ["Vittoria I", "Tonale", 2044, 1885, 821, "S", false],
+      ["Cinque Dossi", "Tonale", 2179, 1885, 1900, "S", false],
+      ["Alpe Alta", "Tonale", 2179, 1889, 1800, "S", false],
+      ["Cadì Carosello", "Tonale", 2179, 1939, 1300, "S", false],
+      ["Cadì Carosello I", "Tonale", 2179, 1939, 1300, "S", false],
+      ["Valena", "Tonale", 2013, 1889, 950, "S", false],
+      ["Valena I", "Tonale", 2013, 1889, 950, "S", false],
+      ["Valbiolo", "Tonale", 2242, 1909, 2700, "SE", false],
+      ["Tonale Occidentale", "Tonale", 2500, 2265, 1500, "E", false],
+      ["Contrabbandieri", "Tonale", 2577, 2212, 1800, "SE", false],
+      ["Paradiso", "Tonale", 2587, 1850, 3000, "N", false],
+      ["Variante Paradiso", "Tonale", 1988, 1733, 1500, "SO", false],
+      ["Presena Paradiso", "Presena", 2724, 2585, 1700, "N", false],
+      ["Variante Presena Paradiso", "Presena", 2724, 2585, 2000, "N", false],
+      ["Ghiacciaio Presena", "Presena", 3000, 2724, 1150, "N", false]
+    ].map(([nome, zona, monte, valle, lung, esp, bosco]) => ({ nome, zona, monte, valle, lung, esp, bosco }));
 
     // data prevista di apertura della stagione (fonte VisitTrentino): da aggiornare ogni anno
     const APERTURA = "2026-11-28";
@@ -247,8 +269,9 @@
 
     // ============ D. IL MODELLO DELLA NEVE ============
     // l'esposizione sposta lo zero termico "percepito" dalla pista:
-    // a nord è come se fosse 200 m più basso (meno sole), a sud 200 m più alto
-    const correzione = (p) => p.esp === "N" ? -200 : p.esp === "S" ? 200 : 0;
+    // a nord è come se fosse 200 m più basso (meno sole), a sud 200 m più alto, vie di mezzo 150 m
+    const CORREZIONE = { N: -200, NE: -150, NO: -150, E: 0, O: 0, SE: 150, SO: 150, S: 200 };
+    const correzione = (p) => CORREZIONE[p.esp] ?? 0;
 
     // contesto del giorno: rigelo notturno, neve fresca, vento
     function contestoGiorno(dati, g) {
@@ -312,6 +335,20 @@
         PISTE.forEach(p => { p.aperta = mappa.has(normalizza(p.nome)) ? mappa.get(normalizza(p.nome)) : null; });
         STATO = { aggiornato: quando };
       } catch { /* niente stato: il sito funziona lo stesso */ }
+    }
+
+    // scheda pista: esposizione, bosco, lunghezza, pendenza media
+    const FRECCE = { N: "↑", NE: "↗", E: "→", SE: "↘", S: "↓", SO: "↙", O: "←", NO: "↖" };
+    const NOMI_ESP = { N: "nord", NE: "nord-est", E: "est", SE: "sud-est", S: "sud", SO: "sud-ovest", O: "ovest", NO: "nord-ovest" };
+    function scheda(p) {
+      const parti = [];
+      if (p.esp) parti.push(`<b title="esposizione">${FRECCE[p.esp]} ${NOMI_ESP[p.esp]}</b>`);
+      if (p.bosco != null) parti.push(p.bosco ? "nel bosco" : "aperta");
+      if (p.lung) {
+        parti.push((p.lung / 1000).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + " km");
+        parti.push(`pendenza ${r(100 * (p.monte - p.valle) / p.lung)}%`);
+      }
+      return `<span class="scheda">${parti.join(" · ")}</span>`;
     }
 
     // ============ E. CALCOLO E DISEGNO PER UN GIORNO ============
@@ -385,12 +422,12 @@
       document.getElementById("boxChiuse").hidden = !chiuse.length;
       document.getElementById("nChiuse").textContent = chiuse.length;
       document.getElementById("lChiuse").innerHTML = chiuse
-        .map(p => `<li><span>${p.nome} <span class="zona">· ${p.zona}</span></span><span class="q">${p.monte} → ${p.valle} m</span></li>`).join("");
+        .map(p => `<li><span>${p.nome} <span class="zona">· ${p.zona}</span>${scheda(p)}</span><span class="q">${p.monte} → ${p.valle} m</span></li>`).join("");
 
       // liste piste
       const gruppi = { 2: [], 1: [], 0: [] };
       risultati.forEach(x => gruppi[x.max].push(x));
-      const riga = x => `<li><span>${x.p.nome} <span class="zona">· ${x.p.zona}</span><span class="why">${x.perche}</span></span>` +
+      const riga = x => `<li><span>${x.p.nome} <span class="zona">· ${x.p.zona}</span><span class="why">${x.perche}</span>${scheda(x.p)}</span>` +
         `<span class="q">${x.buone.length ? "ore " + fascia(x.buone) + "<br>" : ""}${x.p.monte} → ${x.p.valle} m</span></li>`;
       [[2, "Bene"], [1, "Mista"], [0, "Male"]].forEach(([k, id]) => {
         const lista = gruppi[k].sort((a, b) => b.buone.length - a.buone.length || b.p.valle - a.p.valle);
