@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: "Indirizzo della pagina con lo stato di piste e impianti"
+        description: "https://www.pontedilegnotonale.com/en/pontedilegno-tonale-skiing/pontedilegno-tonale-slopes/"
         required: true
 
 permissions:
