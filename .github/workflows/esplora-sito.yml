@@ -1,0 +1,39 @@
+# Lanciala a mano: apre una pagina con Chrome sui server di GitHub
+# e scrive nel log quali dati carica la pagina (riassunto di API Anything).
+name: Esplora sito
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Indirizzo della pagina con lo stato di piste e impianti"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  esplora:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Installa API Anything (versione fissata)
+        run: |
+          dir="$(mktemp -d)"
+          git clone -q https://github.com/goodnight000/api-anything.git "$dir"
+          cd "$dir"
+          git checkout -q 7e301989e3095fc38b992bdb8bd9bcee90600a8b
+          npm ci --no-audit --no-fund
+          npm install -g "$(npm pack --silent)"
+
+      - name: Esplora la pagina
+        env:
+          PAGINA: ${{ inputs.url }}
+          API_ANYTHING_HOME: ${{ runner.temp }}/api-anything
+        run: |
+          echo "===== INIZIO RISULTATO (copia da qui) ====="
+          api-anything capture "$PAGINA" --outline || true
+          echo "===== FINE RISULTATO ====="
