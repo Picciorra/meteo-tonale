@@ -27,6 +27,17 @@
     }
     main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
     h1 { font-size: 28px; margin: 0 0 4px; }
+    .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .refresh {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;
+      border: 1px solid var(--line); background: var(--card); color: var(--text);
+      border-radius: 10px; padding: 8px 12px; font: inherit; font-size: 14px; cursor: pointer;
+    }
+    .refresh:hover { border-color: var(--accent); }
+    .refresh:disabled { opacity: .6; cursor: default; }
+    .refresh svg { width: 16px; height: 16px; }
+    .refresh.gira svg { animation: gira 1s linear infinite; }
+    @keyframes gira { to { transform: rotate(360deg); } }
     h2 { font-size: 20px; margin: 32px 0 4px; }
     .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
     .hint { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
@@ -116,8 +127,16 @@
 </head>
 <body>
   <main>
-    <h1>Passo del Tonale</h1>
-    <p class="sub">1883 m · previsioni aggiornate ad ogni apertura della pagina</p>
+    <div class="top">
+      <div>
+        <h1>Passo del Tonale</h1>
+        <p class="sub">1883 m · <span id="aggiornato">caricamento...</span></p>
+      </div>
+      <button class="refresh" id="btnAggiorna" type="button" aria-label="Aggiorna i dati">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        <span>Aggiorna</span>
+      </button>
+    </div>
 
     <section class="hero">
       <div class="tile accent" id="tApertura"><div class="label">Apertura impianti</div><div class="big">...</div></div>
@@ -512,7 +531,7 @@
         const c = dati.current;
         const oggi = c.time.slice(0, 10);
         mostraApertura(oggi);
-        mostraNevicate(oggi);
+        const nevicate = mostraNevicate(oggi);
 
         // meteo attuale
         const i = Math.max(0, dati.hourly.time.findIndex(t => t >= c.time.slice(0, 13)));
@@ -554,17 +573,34 @@
           return `<button data-g="${d.time[k]}" data-n="${n}">${n === 0 ? "Oggi" : n === 1 ? "Domani" : giorno(d.time[k])}<small>0° a ${media}</small></button>`;
         }).join("");
         const scegli = (b) => {
+          giornoScelto = b.dataset.g;
           box.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
           mostraGiorno(dati, b.dataset.g, b.firstChild.textContent);
         };
         box.querySelectorAll("button").forEach(b => b.onclick = () => scegli(b));
         // di sera ha più senso guardare domani
-        const primo = new Date().getHours() >= 16 && box.children[1] ? box.children[1] : box.children[0];
+        // dopo un aggiornamento resta sul giorno che stavi guardando
+        const stesso = [...box.children].find(b => b.dataset.g === giornoScelto);
+        const primo = stesso || (new Date().getHours() >= 16 && box.children[1] ? box.children[1] : box.children[0]);
         if (primo) scegli(primo);
+        await nevicate;
+        document.getElementById("aggiornato").textContent =
+          "dati aggiornati alle " + new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
       } catch (e) {
         document.getElementById("now").innerHTML = `<p class="error">Non riesco a caricare i dati (${e.message}). Riprova tra poco.</p>`;
       }
     }
+
+    // ============ G. PULSANTE AGGIORNA ============
+    let giornoScelto = null;
+    const btn = document.getElementById("btnAggiorna");
+    btn.onclick = async () => {
+      btn.disabled = true; btn.classList.add("gira");
+      btn.querySelector("span").textContent = "Aggiorno...";
+      await carica();
+      btn.disabled = false; btn.classList.remove("gira");
+      btn.querySelector("span").textContent = "Aggiorna";
+    };
 
     carica();
   </script>
