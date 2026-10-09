@@ -270,6 +270,10 @@
       const t = normalizza(v);
       if (/^(aperta|aperto|open|opened|o|si|yes|true|1)$/.test(t) || t.startsWith("apert")) return true;
       if (/^(chiusa|chiuso|closed|close|c|no|false|0)$/.test(t) || t.startsWith("chius")) return false;
+      // il sito ufficiale usa un'icona: /Assets/closed-icon.svg oppure .../open-icon.svg
+      const testo = Object.values(item).filter(x => typeof x === "string").join(" ").toLowerCase();
+      if (/closed|chius/.test(testo)) return false;
+      if (/open|apert/.test(testo)) return true;
       return null;
     }
     async function caricaStato() {
