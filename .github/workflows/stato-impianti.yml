@@ -41,9 +41,9 @@ jobs:
           else
             echo "Imparo l'operazione dalla pagina delle piste..."
             api-anything add pontedilegno statoPiste \
-              --trigger 'https://www.pontedilegnotonale.com/{lingua}/pontedilegno-tonale-skiing/pontedilegno-tonale-slopes/' \
-              --example lingua=en \
-              --match 'path=/*/pontedilegno-tonale-skiing/pontedilegno-tonale-slopes/' \
+              --trigger 'https://www.pontedilegnotonale.com/en/pontedilegno-tonale-skiing/{pagina}/' \
+              --example pagina=pontedilegno-tonale-slopes \
+              --match 'path=/en/pontedilegno-tonale-skiing/*/' \
               --html '{"items":"table.table tr","fields":{"nome":"th","icona":"img@src"}}' \
               --description "Stato aperta/chiusa delle piste di Pontedilegno-Tonale"
             api-anything export pontedilegno --keep-examples --out api-anything/pontedilegno.json
@@ -51,7 +51,7 @@ jobs:
 
       - name: Leggi lo stato delle piste
         run: |
-          api-anything call pontedilegno statoPiste lingua=en > risposta.json || true
+          api-anything call pontedilegno statoPiste pagina=pontedilegno-tonale-slopes > risposta.json || true
           node -e '
             const fs = require("fs");
             let r = {};
