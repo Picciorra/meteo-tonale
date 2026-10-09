@@ -1,0 +1,189 @@
+{
+  "aggiornato": "2026-10-09T11:55:33.880Z",
+  "piste": [
+    {
+      "nome": "Temù",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "La Croce",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Roccolo Ventura I",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Roccolo Ventura II",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Roccolo Sartori",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Santa Giulia",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Doss delle Pertiche",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Casola Skiweg",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Casola I",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Casola II",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Valbione I",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Angelo",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Valbione II",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Variante Corno d'Aola",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Corno d'Aola",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Campo Scuola Cida",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Pegrà",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Tonalina",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Giuliana",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Bleis",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Alpino",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Tre larici",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Serodine I",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Serodine II",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Serodine Gara",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Cadì Sit",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Scoiattolo",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Presanella",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Presanella I",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Vittoria",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Vittoria I",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Cinque Dossi",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Alpe Alta",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Cadì Carosello",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Cadì Carosello I",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Valena",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Valena I",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Valbiolo",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "San Bartolomeo",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Tonale Occidentale",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Contrabbandieri",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Paradiso",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Variante Paradiso",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Presena Paradiso",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Variante Presena Paradiso",
+      "icona": "/Assets/closed-icon.svg"
+    },
+    {
+      "nome": "Ghiacciaio Presena",
+      "icona": "/Assets/closed-icon.svg"
+    }
+  ]
+}
