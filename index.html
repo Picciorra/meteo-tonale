@@ -185,7 +185,7 @@
       </table>
     </section>
 
-    <p class="hint">Come funziona: per ogni pista e ogni ora confronta lo zero termico con le quote. Se di notte lo zero scende sotto la pista, la neve rigela e a metà mattina diventa "primaverile" (bella). Il vento forte in quota (oltre 60 km/h a 3000 m) può chiudere gli impianti alti. Le piste esposte a nord contano come se lo zero termico fosse fino a 200 m più basso, quelle a sud fino a 200 m più alto; il bosco protegge dal vento. Lo stato aperta/chiusa arriva ogni mattina dal file stato.json ed è quello del giorno in cui è stato letto.</p>
+    <p class="hint">Come funziona: per ogni pista e ogni ora confronta lo zero termico con le quote. Se di notte lo zero scende sotto la pista, la neve rigela e a metà mattina diventa "primaverile" (bella). Il vento forte in quota (oltre 60 km/h a 3000 m) può chiudere gli impianti alti. Le piste esposte a nord contano come se lo zero termico fosse fino a 200 m più basso, quelle a sud fino a 200 m più alto; il bosco protegge dal vento. La neve caduta è calcolata al passo dalla precipitazione e dallo zero termico, perché il modello meteo tende a contarla come pioggia. Lo stato aperta/chiusa arriva ogni mattina dal file stato.json ed è quello del giorno in cui è stato letto.</p>
 
     <footer>Dati: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Quote piste: <a href="https://www.pontedilegnotonale.com/media/rx0b0ftu/cartina_piste_pontetonale_ita_v2.pdf" target="_blank" rel="noopener">cartina ufficiale Pontedilegno-Tonale</a></footer>
   </main>
@@ -197,7 +197,7 @@
     const URL_API = "https://api.open-meteo.com/v1/forecast"
       + "?latitude=46.2586&longitude=10.5803&elevation=1883"
       + "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m"
-      + "&hourly=snow_depth,freezing_level_height,snowfall,wind_speed_700hPa"
+      + "&hourly=snow_depth,freezing_level_height,snowfall,precipitation,temperature_2m,wind_speed_700hPa"
       + "&daily=weather_code,temperature_2m_max,temperature_2m_min,snowfall_sum,precipitation_probability_max,wind_speed_10m_max"
       + "&timezone=Europe%2FRome&forecast_days=7&past_days=2";
 
@@ -254,7 +254,8 @@
 
     // data prevista di apertura della stagione (fonte VisitTrentino): da aggiornare ogni anno
     const APERTURA = "2026-11-28";
-    const NEVE_MIN = 1; // cm: sotto questa soglia non conta come nevicata
+    const NEVE_MIN = 1; // cm: una nevicata (anche su più giorni) sotto questa soglia non conta
+    const NEVE_TRACCIA = 0.2; // cm al giorno: sotto questa soglia il giorno non fa parte di una nevicata
 
     const ZONE = ["Presena", "Tonale", "Ponte di Legno", "Temù"];
     const ORE = [9, 10, 11, 12, 13, 14, 15, 16];
@@ -280,6 +281,50 @@
       const k = dati.hourly.time.indexOf(`${g}T${String(ora).padStart(2, "0")}:00`);
       return k < 0 ? null : dati.hourly[campo][k];
     }
+    // ============ C2. LA NEVE CALCOLATA AL PASSO ============
+    // Lo "snowfall" di Open-Meteo è quello della cella del modello, larga chilometri e con dentro
+    // anche la valle: a inizio stagione la conta come pioggia anche quando al passo nevica.
+    // Quindi la neve la calcoliamo noi, ora per ora: precipitazione x quanto il passo sta sotto lo zero termico.
+    const QUOTA = 1883;
+    const CM_PER_MM = 1; // neve fresca circa 10:1: 1 mm d'acqua = 1 cm di neve
+
+    // quanto della precipitazione cade come neve al passo (0 = pioggia, 1 = tutta neve)
+    // la neve arriva di solito circa 300 m sotto lo zero termico
+    function frazioneNeve(h, k) {
+      const zero = h.freezing_level_height ? h.freezing_level_height[k] : null;
+      if (zero != null) return Math.min(1, Math.max(0, (QUOTA + 600 - zero) / 300)); // tutta neve con lo zero sotto 2.180 m, pioggia sopra 2.480 m
+      const t = h.temperature_2m ? h.temperature_2m[k] : null; // archivio: non ha lo zero termico, uso la temperatura a 1883 m
+      if (t != null) return Math.min(1, Math.max(0, (2 - t) / 2)); // tutta neve sotto 0°, pioggia sopra 2°
+      return 0;
+    }
+    // cm di neve per ogni ora (il massimo tra il nostro calcolo e quello del modello)
+    function neveOraria(h) {
+      return h.time.map((t, k) => {
+        const calcolata = (h.precipitation[k] || 0) * frazioneNeve(h, k) * CM_PER_MM;
+        return Math.max(calcolata, h.snowfall[k] || 0);
+      });
+    }
+    // cm di neve per giorno: { "2026-10-15": 7.5, ... }
+    function neveGiornaliera(h) {
+      const ore = neveOraria(h), giorni = {};
+      h.time.forEach((t, k) => { const g = t.slice(0, 10); giorni[g] = (giorni[g] || 0) + ore[k]; });
+      return giorni;
+    }
+    // giorni consecutivi con neve = una nevicata: [{ inizio, fine, cm }], solo quelle da almeno NEVE_MIN
+    function nevicate(giorni) {
+      const eventi = [];
+      let ev = null, prima = null;
+      for (const g of Object.keys(giorni).sort()) {
+        const cm = giorni[g];
+        if (cm >= NEVE_TRACCIA) {
+          if (ev && prima && giorniTra(g, prima) === 1) { ev.fine = g; ev.cm += cm; }
+          else { ev = { inizio: g, fine: g, cm }; eventi.push(ev); }
+          prima = g;
+        } else { ev = null; }
+      }
+      return eventi.filter(e => e.cm >= NEVE_MIN);
+    }
+
     // fascia oraria leggibile: [10,11,12] -> "10-13"
     function fascia(ore) {
       if (!ore.length) return "";
@@ -299,7 +344,7 @@
       // neve caduta nelle 48 ore prima delle 9 del giorno scelto
       const fine = dati.hourly.time.indexOf(`${g}T09:00`);
       let neveFresca = 0;
-      for (let k = Math.max(0, fine - 48); k < fine; k++) neveFresca += dati.hourly.snowfall[k] || 0;
+      for (let k = Math.max(0, fine - 48); k < fine; k++) neveFresca += dati.neve[k] || 0;
       const venti = ORE.map(h => valore(dati, "wind_speed_700hPa", g, h)).filter(v => v != null);
       const ventoMax = venti.length ? Math.max(...venti) : null;
       return { zeroNotte, neveFresca, ventoMax };
@@ -478,30 +523,35 @@
 
     // ultima nevicata (fino a 3 mesi fa, poi archivio fino a 13 mesi) e prossima (fino a 16 giorni)
     async function mostraNevicate(oggi) {
-      const base = "latitude=46.2586&longitude=10.5803&elevation=1883&daily=snowfall_sum&timezone=Europe%2FRome";
+      const base = "latitude=46.2586&longitude=10.5803&elevation=1883&timezone=Europe%2FRome";
       try {
-        const d = (await scarica(`https://api.open-meteo.com/v1/forecast?${base}&past_days=92&forecast_days=16`)).daily;
-        const giorni = d.time.map((g, k) => ({ g, cm: d.snowfall_sum[k] || 0 }));
-        const prossima = giorni.find(x => x.g > oggi && x.cm >= NEVE_MIN);
+        const h = (await scarica(`https://api.open-meteo.com/v1/forecast?${base}&hourly=precipitation,snowfall,freezing_level_height,temperature_2m&past_days=92&forecast_days=16`)).hourly;
+        const giorni = neveGiornaliera(h);
+        // per la prossima contano solo i giorni da domani; per l'ultima quelli fino a oggi
+        const futuri = {}, passati = {};
+        for (const g in giorni) (g > oggi ? futuri : passati)[g] = giorni[g];
+        const prossima = nevicate(futuri)[0];
+        const inCorso = nevicate(passati).find(e => e.fine === oggi);
         if (prossima) {
-          const n = giorniTra(prossima.g, oggi);
-          tile("tProssima", n === 1 ? "domani" : `tra ${n} giorni`, `circa ${r(prossima.cm)} cm, ${dataLunga(prossima.g)}`);
+          const n = giorniTra(prossima.inizio, oggi);
+          tile("tProssima", n === 1 ? "domani" : `tra ${n} giorni`, `circa ${r(prossima.cm)} cm, ${dataLunga(prossima.inizio)}`);
         } else {
-          const oggiNeve = giorni.find(x => x.g === oggi && x.cm >= NEVE_MIN);
-          tile("tProssima", oggiNeve ? "oggi" : "non prevista", oggiNeve ? `circa ${r(oggiNeve.cm)} cm` : "nei prossimi 16 giorni");
+          tile("tProssima", inCorso ? "oggi" : "non prevista", inCorso ? `circa ${r(giorni[oggi])} cm` : "nei prossimi 16 giorni");
         }
 
-        let ultima = giorni.filter(x => x.g <= oggi && x.cm >= NEVE_MIN).pop();
+        let ultima = nevicate(passati).pop();
         if (!ultima) {
           // più indietro: archivio storico (ha qualche giorno di ritardo, ma per i mesi passati va benissimo)
+          // l'archivio non ha lo zero termico: frazioneNeve usa la temperatura a 1883 m
           const fine = new Date(Date.now() - 80 * 86400000).toISOString().slice(0, 10);
           const inizio = new Date(Date.now() - 400 * 86400000).toISOString().slice(0, 10);
-          const a = (await scarica(`https://archive-api.open-meteo.com/v1/archive?${base}&start_date=${inizio}&end_date=${fine}`)).daily;
-          ultima = a.time.map((g, k) => ({ g, cm: a.snowfall_sum[k] || 0 })).filter(x => x.cm >= NEVE_MIN).pop();
+          const a = (await scarica(`https://archive-api.open-meteo.com/v1/archive?${base}&hourly=precipitation,snowfall,temperature_2m&start_date=${inizio}&end_date=${fine}`)).hourly;
+          ultima = nevicate(neveGiornaliera(a)).pop();
         }
         if (ultima) {
-          const n = -giorniTra(ultima.g, oggi);
-          tile("tUltima", n === 0 ? "oggi" : n === 1 ? "ieri" : `${n} giorni fa`, `${r(ultima.cm)} cm, ${dataLunga(ultima.g)}`);
+          const n = -giorniTra(ultima.fine, oggi);
+          const quando = ultima.inizio === ultima.fine ? dataLunga(ultima.fine) : `${dataLunga(ultima.inizio)} - ${dataLunga(ultima.fine)}`;
+          tile("tUltima", n === 0 ? "oggi" : n === 1 ? "ieri" : `${n} giorni fa`, `${r(ultima.cm)} cm, ${quando}`);
         } else {
           tile("tUltima", "oltre un anno fa", "");
         }
@@ -530,6 +580,8 @@
         const [dati] = await Promise.all([scarica(URL_API), caricaStato()]);
         const c = dati.current;
         const oggi = c.time.slice(0, 10);
+        dati.neve = neveOraria(dati.hourly);
+        const neveG = neveGiornaliera(dati.hourly);
         mostraApertura(oggi);
         const nevicate = mostraNevicate(oggi);
 
@@ -553,14 +605,14 @@
           <div class="stat"><div class="label">Neve al suolo</div><div class="value">${neveSuolo == null ? "n.d." : r(neveSuolo * 100) + " cm"}</div></div>
           <div class="stat"><div class="label">Zero termico</div><div class="value">${zeroTermico == null ? "n.d." : r(zeroTermico) + " m"}</div></div>
           <div class="stat"><div class="label">Vento</div><div class="value">${r(c.wind_speed_10m)} km/h</div></div>
-          <div class="stat"><div class="label">Neve prossimi 7 gg</div><div class="value">${r(idx.reduce((a, k) => a + d.snowfall_sum[k], 0))} cm</div></div>`;
+          <div class="stat"><div class="label">Neve prossimi 7 gg</div><div class="value">${r(idx.reduce((a, k) => a + (neveG[d.time[k]] || 0), 0))} cm</div></div>`;
 
         document.getElementById("days").innerHTML = idx.map(k => `
           <tr>
             <td>${giorno(d.time[k])}</td>
             <td>${descrizione(d.weather_code[k])}</td>
             <td class="num">${r(d.temperature_2m_min[k])}° / ${r(d.temperature_2m_max[k])}°</td>
-            <td class="num ${d.snowfall_sum[k] > 0 ? "snow" : ""}">${d.snowfall_sum[k] > 0 ? d.snowfall_sum[k].toFixed(1) + " cm" : "-"}</td>
+            <td class="num ${neveG[d.time[k]] >= NEVE_TRACCIA ? "snow" : ""}">${neveG[d.time[k]] >= NEVE_TRACCIA ? neveG[d.time[k]].toFixed(1) + " cm" : "-"}</td>
             <td class="num hide-sm">${d.precipitation_probability_max[k] ?? "-"}%</td>
             <td class="num hide-sm">${r(d.wind_speed_10m_max[k])} km/h</td>
           </tr>`).join("");
